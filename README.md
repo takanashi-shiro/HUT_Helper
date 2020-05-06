@@ -1,0 +1,2 @@
+# HUT_Get_Calendar_ics
+用python提取课表并生成可导入至日历中isc文件
