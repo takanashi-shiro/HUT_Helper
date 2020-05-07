@@ -1,6 +1,6 @@
 # @name             HUT_Get_Calendar.ics
 # @namespace        https://github.com/takanashi-shiro/HUT_Get_Calendar_ics
-# @version          1.0.0
+# @version          1.0.1
 # @description      用python提取课表并生成可导入至日历中isc文件
 # @author:          Takanashi-Shiro
 
@@ -59,7 +59,7 @@ def find_class(cookie,zc,now_week_date):    #获取zc周课程 now_week_date为�
         course_name.append(str(i)[names:namef])
 
         ss = str(i).find('kssj')+7
-        sf = fs+5
+        sf = ss+5
         course_time_start.append(str(i)[ss:ss+2]+str(i)[ss+3:sf])
 
         cs = str(i).find('jsmc')+7
@@ -75,6 +75,7 @@ def find_class(cookie,zc,now_week_date):    #获取zc周课程 now_week_date为�
 
         day = str(i)[str(i).find('kcsj')+7]
         course_day.append(day)
+
     tras(now_week_date,1)
 
 
@@ -87,10 +88,15 @@ def login():            #登入获取cookies
 
     soup = bs4.BeautifulSoup(response.text, "html.parser")
     s_soup = str(soup)
-    begin = s_soup.find("token")+8
-    final = s_soup.find("user")-3
-    cookie = s_soup[begin:final]
-    return cookie
+    success = s_soup[11]
+    if success == 'f':
+        print("用户名或密码错误，请重试")
+        return login()
+    else:
+        begin = s_soup.find("token")+8
+        final = s_soup.find("user")-3
+        cookie = s_soup[begin:final]
+        return cookie
 
 def get_now_week(cookie):       #获取当前日期为第几周
     url = 'http://218.75.197.123:83/app.do'
