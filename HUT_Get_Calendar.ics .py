@@ -1,6 +1,6 @@
 # @name             HUT_Get_Calendar.ics
 # @namespace        https://github.com/takanashi-shiro/HUT_Get_Calendar_ics
-# @version          1.0.1
+# @version          1.0.4
 # @description      用python提取课表并生成可导入至日历中isc文件
 # @author:          Takanashi-Shiro
 
@@ -10,7 +10,7 @@ import requests, bs4, re, os
 from lxml import etree
 import datetime
 import os
-
+import time
 
 def find_class(cookie,zc,now_week_date):    #获取zc周课程 now_week_date为当前周的第一天日期
     url = 'http://218.75.197.123:83/app.do'
@@ -90,6 +90,7 @@ def login():            #登入获取cookies
     s_soup = str(soup)
     success = s_soup[11]
     if success == 'f':
+        os.system('cls')
         print("用户名或密码错误，请重试")
         return login()
     else:
@@ -97,6 +98,7 @@ def login():            #登入获取cookies
         final = s_soup.find("user")-3
         cookie = s_soup[begin:final]
         return cookie
+
 
 def get_now_week(cookie):       #获取当前日期为第几周
     url = 'http://218.75.197.123:83/app.do'
@@ -141,15 +143,34 @@ def tras(now_week_date,day):        #将获取的课程信息转换为ics格式�
         a.write("TRANSP:OPAQUE\nEND:VEVENT\nEND:VCALENDAR\n")
     
 
+def jdt(start,i,len_jdt):
+    a = '*' * i
+    b = '.' * (len_jdt - i)
+    c = (i/len_jdt)*100
+    dur = time.perf_counter() - start
+    print("\r{:^3.0f}%[{}->{}]{:.2f}s".format(c,a,b,dur),end='')
+    time.sleep(0.1)
+
+
 if __name__ == "__main__":
-     cookie = login()
-     now_week = int(get_now_week(cookie))
-     cnt = 0
-     a = open("your_calendar.ics",mode='w',encoding="utf-8")
-     a.write('')
-     a.close
-     a = open("your_calendar.ics",mode='a',encoding="utf-8")
-     for i in range(now_week,21):           #由于一学期正常最多不超过20周 循环到20周
+    cookie = login()
+    now_week = int(get_now_week(cookie))
+    cnt = 0
+    a = open("your_calendar.ics",mode='w',encoding="utf-8")
+    a.write('')
+    a.close
+    a = open("your_calendar.ics",mode='a',encoding="utf-8")
+
+    os.system('cls')
+    s_jdt = time.perf_counter()
+    print("执行开始".center(50//2,'-'))
+    cnt = 0
+    now_jdt = 20-now_week
+    for i in range(now_week,21):           #由于一学期正常最多不超过20周 循环到20周
         find_class(cookie,i,s_time)         #👇将每次获得的now_week转换成datetime类型 +7天 直接到下一周
         s_time = str((datetime.datetime(int(s_time[0:4]),int(s_time[4:6]),int(s_time[6:8])) + datetime.timedelta(days=7)).strftime('%Y%m%d'))
-     a.close
+        jdt(s_jdt,int(cnt),50)
+        cnt += 50/now_jdt
+    print("\n"+"执行结束".center(50//2,'-'))
+    a.close
+    os.system('pause')
