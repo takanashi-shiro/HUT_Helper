@@ -1,6 +1,6 @@
 # @name             HUT_Get_Calendar.ics
 # @namespace        https://github.com/takanashi-shiro/HUT_Get_Calendar_ics
-# @version          1.0.4
+# @version          1.1.0
 # @description      用python提取课表并生成可导入至日历中isc文件
 # @author:          Takanashi-Shiro
 
@@ -11,6 +11,7 @@ from lxml import etree
 import datetime
 import os
 import time
+
 
 def find_class(cookie,zc,now_week_date):    #获取zc周课程 now_week_date为当前周的第一天日期
     url = 'http://218.75.197.123:83/app.do'
@@ -89,6 +90,7 @@ def login():            #登入获取cookies
     soup = bs4.BeautifulSoup(response.text, "html.parser")
     s_soup = str(soup)
     success = s_soup[11]
+
     if success == 'f':
         os.system('cls')
         print("用户名或密码错误，请重试")
@@ -119,6 +121,7 @@ def get_now_week(cookie):       #获取当前日期为第几周
 
 
 def tras(now_week_date,day):        #将获取的课程信息转换为ics格式输出
+    global res
     now_day = int(day)
     now_time = now_week_date
     for i in range(0,len(course)):
@@ -128,19 +131,19 @@ def tras(now_week_date,day):        #将获取的课程信息转换为ics格式�
             now_day+=n
         st = now_time + 'T' +course_time_start[i] + '00'
         ft = now_time + 'T' +course_time_finnal[i] +'00'
-        a.write("BEGIN:VCALENDAR\nPRODID:-//Google Inc//Google Calendar 70.9054//EN\nVERSION:2.0\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\nX-WR-CALNAME:课程表\nX-WR-TIMEZONE:America/New_York\nBEGIN:VEVENT\n")
-        a.write("DTSTART:"+st+'\n')
-        a.write("DTEND:"+ft+'\n')
-        a.write("DTSTAMP:"+st+'\n')
-        a.write("UID:课程表\n")
-        a.write("CREATED:"+st+'\n')
-        a.write("DESCRIPTION:"+course_teacher[i]+'\n')
-        a.write("LAST-MODIFIED:"+st+'\n')
-        a.write("LOCATION:"+course_classroom[i]+'\n')
-        a.write("SEQUENCE:0"+'\n')
-        a.write("STATUS:CONFIRMED"+'\n')
-        a.write("SUMMARY:"+course_name[i]+'\n')
-        a.write("TRANSP:OPAQUE\nEND:VEVENT\nEND:VCALENDAR\n")
+        res += "BEGIN:VCALENDAR\nPRODID:-//Google Inc//Google Calendar 70.9054//EN\nVERSION:2.0\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\nX-WR-CALNAME:课程表\nX-WR-TIMEZONE:America/New_York\nBEGIN:VEVENT\n"
+        res += "DTSTART:"+st+'\n'
+        res += "DTEND:"+ft+'\n'
+        res += "DTSTAMP:"+st+'\n'
+        res += "UID:课程表\n"
+        res += "CREATED:"+st+'\n'
+        res += "DESCRIPTION:"+course_teacher[i]+'\n'
+        res += "LAST-MODIFIED:"+st+'\n'
+        res +="LOCATION:"+course_classroom[i]+'\n'
+        res += "SEQUENCE:0"+'\n'
+        res += "STATUS:CONFIRMED"+'\n'
+        res += "SUMMARY:"+course_name[i]+'\n'
+        res += "TRANSP:OPAQUE\nEND:VEVENT\nEND:VCALENDAR\n"
     
 
 def jdt(start,i,len_jdt):
@@ -157,9 +160,9 @@ if __name__ == "__main__":
     now_week = int(get_now_week(cookie))
     cnt = 0
     a = open("your_calendar.ics",mode='w',encoding="utf-8")
-    a.write('')
-    a.close
-    a = open("your_calendar.ics",mode='a',encoding="utf-8")
+
+    global res
+    res = ''
 
     os.system('cls')
     s_jdt = time.perf_counter()
@@ -172,5 +175,6 @@ if __name__ == "__main__":
         jdt(s_jdt,int(cnt),50)
         cnt += 50/now_jdt
     print("\n"+"执行结束".center(50//2,'-'))
+    a.write(res)
     a.close
     os.system('pause')
