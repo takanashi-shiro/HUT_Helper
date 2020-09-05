@@ -1,34 +1,37 @@
 # @name             HUT_Get_Calendar.ics
 # @namespace        https://github.com/takanashi-shiro/HUT_Get_Calendar_ics
-# @version          1.1.0
+# @version          1.1.5
 # @description      用python提取课表并生成可导入至日历中isc文件
 # @author:          Takanashi-Shiro
 
 
-#-*-coding:utf-8-*-
-import requests, bs4, re, os
+# -*-coding:utf-8-*-
+import requests
+import bs4
+import re
+import os
 from lxml import etree
 import datetime
 import os
 import time
 
 
-def find_class(cookie,zc,now_week_date):    #获取zc周课程 now_week_date为当前周的第一天日期
+def find_class(cookie, zc, now_week_date):  # 获取zc周课程 now_week_date为当前周的第一天日期
     url = 'http://218.75.197.123:83/app.do'
     header = {
-        'token':cookie
+        'token': cookie
     }
     data = {
-        'method':'getKbcxAzc',
-        'xh':user,
-        'xnxqid':'',
-        'zc':str(zc)
+        'method': 'getKbcxAzc',
+        'xh': user,
+        'xnxqid': '',
+        'zc': str(zc)
     }
-    response = requests.get(url=url,params=data,headers=header)
+    response = requests.get(url=url, params=data, headers=header)
     soup = bs4.BeautifulSoup(response.text, "html.parser")
     soup_str = str(soup)
 
-    global course,course_name,course_time_start,course_time_finnal,course_classroom,course_teacher,course_day
+    global course, course_name, course_time_start, course_time_finnal, course_classroom, course_teacher, course_day
     s = 0
     f = 2147483647
 
@@ -40,7 +43,7 @@ def find_class(cookie,zc,now_week_date):    #获取zc周课程 now_week_date为�
     course_teacher = []
     course_day = []
 
-    for i in range(0,len(soup_str)):        #先获取课程的全部信息
+    for i in range(0, len(soup_str)):  # 先获取课程的全部信息
         if soup_str[i] == '{':
             s = i
         if soup_str[i] == '}':
@@ -49,7 +52,7 @@ def find_class(cookie,zc,now_week_date):    #获取zc周课程 now_week_date为�
             s = f+1
             f = 2147483647
 
-    for i in course:        #再对每个课程的信息进行分类
+    for i in course:  # 再对每个课程的信息进行分类
 
         fs = str(i).find('jssj')+7
         ff = fs+5
@@ -69,7 +72,7 @@ def find_class(cookie,zc,now_week_date):    #获取zc周课程 now_week_date为�
             course_classroom.append('无/待定')
         else:
             course_classroom.append(str(i)[cs:cf])
-        
+
         ts = str(i).find('jsxm')+7
         tf = len(str(i))-1
         course_teacher.append(str(i)[ts:tf])
@@ -77,10 +80,10 @@ def find_class(cookie,zc,now_week_date):    #获取zc周课程 now_week_date为�
         day = str(i)[str(i).find('kcsj')+7]
         course_day.append(day)
 
-    tras(now_week_date,1)
+    tras(now_week_date, 1)
 
 
-def login():            #登入获取cookies
+def login():  # 登入获取cookies
     global user
     user = input("输入用户名(学号):")
     user_password = input("输入密码:")
@@ -102,35 +105,43 @@ def login():            #登入获取cookies
         return cookie
 
 
-def get_now_week(cookie):       #获取当前日期为第几周
+def get_now_week(cookie, time):  # 获取当前日期为第几周
     url = 'http://218.75.197.123:83/app.do'
     header = {
-        'token':cookie
+        'token': cookie
     }
     data = {
-        'method':'getCurrentTime',
-        'currDate':datetime.datetime.now().strftime('%Y-%m-%d')
+        'method': 'getCurrentTime',
+        'currDate': time
     }
-    response = requests.get(url=url,params=data,headers=header)
+    response = requests.get(url=url, params=data, headers=header)
     soup = bs4.BeautifulSoup(response.text, "html.parser")
     soup_str = str(soup)
-    zc = eval(soup_str[soup_str.find('zc')+4:soup_str.find('e_time')-2])
-    global s_time
-    s_time = soup_str[11:15]+soup_str[16:18]+soup_str[19:21]            #当前日期所在周的第一天 用于推出从当前周起 以后的所有课程
-    return zc
+    zc = soup_str[soup_str.find('zc')+4:soup_str.find('e_time')-2]
+    if zc == 'null':
+        print("当前还未到上课时间，请自行输入有课的第一天的日期(2020-01-01)")
+        rq = input()
+        return get_now_week(cookie, rq)
+    else:
+        zc = eval(zc)
+        global s_time
+        s_time = soup_str[11:15]+soup_str[16:18] + \
+            soup_str[19:21]  # 当前日期所在周的第一天 用于推出从当前周起 以后的所有课程
+        return zc
 
 
-def tras(now_week_date,day):        #将获取的课程信息转换为ics格式输出
+def tras(now_week_date, day):  # 将获取的课程信息转换为ics格式输出
     global res
     now_day = int(day)
     now_time = now_week_date
-    for i in range(0,len(course)):
-        if(int(course_day[i])!=now_day):        #判断是否是同一天的课程 如果不是就加一天
+    for i in range(0, len(course)):
+        if(int(course_day[i]) != now_day):  # 判断是否是同一天的课程 如果不是就加一天
             n = int(course_day[i]) - now_day
-            now_time = str((datetime.datetime(int(now_time[0:4]),int(now_time[4:6]),int(now_time[6:8])) + datetime.timedelta(days=n)).strftime('%Y%m%d'))
-            now_day+=n
-        st = now_time + 'T' +course_time_start[i] + '00'
-        ft = now_time + 'T' +course_time_finnal[i] +'00'
+            now_time = str((datetime.datetime(int(now_time[0:4]), int(now_time[4:6]), int(
+                now_time[6:8])) + datetime.timedelta(days=n)).strftime('%Y%m%d'))
+            now_day += n
+        st = now_time + 'T' + course_time_start[i] + '00'
+        ft = now_time + 'T' + course_time_finnal[i] + '00'
         res += "BEGIN:VCALENDAR\nPRODID:-//Google Inc//Google Calendar 70.9054//EN\nVERSION:2.0\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\nX-WR-CALNAME:课程表\nX-WR-TIMEZONE:America/New_York\nBEGIN:VEVENT\n"
         res += "DTSTART:"+st+'\n'
         res += "DTEND:"+ft+'\n'
@@ -139,42 +150,45 @@ def tras(now_week_date,day):        #将获取的课程信息转换为ics格式�
         res += "CREATED:"+st+'\n'
         res += "DESCRIPTION:"+course_teacher[i]+'\n'
         res += "LAST-MODIFIED:"+st+'\n'
-        res +="LOCATION:"+course_classroom[i]+'\n'
+        res += "LOCATION:"+course_classroom[i]+'\n'
         res += "SEQUENCE:0"+'\n'
         res += "STATUS:CONFIRMED"+'\n'
         res += "SUMMARY:"+course_name[i]+'\n'
         res += "TRANSP:OPAQUE\nEND:VEVENT\nEND:VCALENDAR\n"
-    
 
-def jdt(start,i,len_jdt):
+
+def jdt(start, i, len_jdt):
     a = '*' * i
     b = '.' * (len_jdt - i)
     c = (i/len_jdt)*100
     dur = time.perf_counter() - start
-    print("\r{:^3.0f}%[{}->{}]{:.2f}s".format(c,a,b,dur),end='')
+    print("\r{:^3.0f}%[{}->{}]{:.2f}s".format(c, a, b, dur), end='')
     time.sleep(0.1)
 
 
 if __name__ == "__main__":
     cookie = login()
-    now_week = int(get_now_week(cookie))
+    now_time = datetime.datetime.now().strftime('%Y-%m-%d')
+    now_week = int(get_now_week(cookie, now_time))
     cnt = 0
-    a = open("your_calendar.ics",mode='w',encoding="utf-8")
+    a = open("your_calendar.ics", mode='w', encoding="utf-8")
 
     global res
     res = ''
 
     os.system('cls')
     s_jdt = time.perf_counter()
-    print("执行开始".center(50//2,'-'))
+    print("执行开始".center(50//2, '-'))
     cnt = 0
     now_jdt = 20-now_week
-    for i in range(now_week,21):           #由于一学期正常最多不超过20周 循环到20周
-        find_class(cookie,i,s_time)         #👇将每次获得的now_week转换成datetime类型 +7天 直接到下一周
-        s_time = str((datetime.datetime(int(s_time[0:4]),int(s_time[4:6]),int(s_time[6:8])) + datetime.timedelta(days=7)).strftime('%Y%m%d'))
-        jdt(s_jdt,int(cnt),50)
+    for i in range(now_week, 21):  # 由于一学期正常最多不超过20周 循环到20周
+        # 👇将每次获得的now_week转换成datetime类型 +7天 直接到下一周
+        find_class(cookie, i, s_time)
+        s_time = str((datetime.datetime(int(s_time[0:4]), int(s_time[4:6]), int(
+            s_time[6:8])) + datetime.timedelta(days=7)).strftime('%Y%m%d'))
+        jdt(s_jdt, int(cnt), 50)
         cnt += 50/now_jdt
-    print("\n"+"执行结束".center(50//2,'-'))
+    print("\n"+"执行结束".center(50//2, '-'))
     a.write(res)
     a.close
     os.system('pause')
